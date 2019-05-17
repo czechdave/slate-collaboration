@@ -11,32 +11,60 @@ app.get("/", function(req, res) {
 
 let valueJSON = INITIAL_VALUE;
 
-function splitOperations(operations) {
-  const valueOperations = [];
-  const selectionOperations = [];
-  operations.forEach(op => {
-    (op.type === "set_selection" ? selectionOperations : valueOperations).push(
-      op
-    );
-  });
-  return [valueOperations, selectionOperations];
+const clientsById = {};
+
+function getClient(id) {
+  return clientsById[id];
+}
+
+function setClient(client) {
+  const { key } = client;
+
+  clientsById[key] = {
+    ...clientsById[key],
+    ...client
+  };
+
+  return clientsById[key];
 }
 
 io.on("connection", function(socket) {
-  console.log(
-    "A client connected: ",
-    socket.id,
-    "\n current value: ",
-    Value.create(valueJSON).document.text
-  );
-  socket.emit("welcome", "Hi! I'll be your server today :-)");
+  console.log("A new client connected: ", socket.id);
 
-  // Send initial value to new client
-  socket.emit("value:init", valueJSON);
+  const clientsCount = Object.keys(clientsById).length;
+  const annotation = setClient({
+    key: socket.id,
+    anchor: { offset: 0, path: [0, 0] },
+    focus: { offset: 0, path: [0, 0] },
+    data: {
+      name: `User${clientsCount ? clientsCount : ""}`,
+      // random color
+      color: `#${Math.floor(Math.random() * 16777215).toString(16)}`
+    }
+  });
+
+  // Send initial welcome to the new client
+  socket.emit("welcome", {
+    value: valueJSON,
+    annotation
+  });
+
+  function emitClients() {
+    const annotations = Object.keys(clientsById).map(k => clientsById[k]);
+
+    socket.broadcast.emit("client:update", { annotations });
+  }
 
   // Tell others we have a new client
-  socket.broadcast.emit("newClient", {
-    id: socket.id
+  emitClients();
+
+  socket.on("client:change", change => {
+    const { annotation } = change;
+    setClient({
+      ...annotation,
+      key: socket.id
+    });
+    emitClients();
   });
 
   socket.on("value:change", change => {
@@ -49,18 +77,9 @@ io.on("connection", function(socket) {
     });
   });
 
-  socket.on("client:change", change => {
-    const { annotation } = change;
-    socket.broadcast.emit("client:change", {
-      annotation: {
-        ...annotation,
-        key: socket.id,
-      }
-    });
-  });
-
   socket.on("disconnect", function() {
     console.log("A client disconnected: ", socket.id);
+    delete clientsById[socket.id];
   });
 });
 
