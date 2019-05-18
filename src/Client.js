@@ -4,8 +4,6 @@ import { Editor } from "slate-react";
 import io from "socket.io-client";
 import renderAnnotation, { ANNOTATION_TYPES } from "./slate/renderAnnotation";
 
-const HOST = "192.168.0.52:3001";
-
 /** Class representing a collaboration client. */
 class Client extends React.Component {
   constructor(props) {
@@ -20,7 +18,8 @@ class Client extends React.Component {
 
   /** When client mounts, initialize socket connection. */
   componentDidMount() {
-    this.socket = io(HOST);
+    this.socket = io();
+    console.log('Client socket connected: ', this.socket);
     this.socket.on("change", this.onChangeServer);
   }
 

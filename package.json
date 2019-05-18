@@ -2,12 +2,14 @@
   "name": "slate-collaboration",
   "version": "0.1.0",
   "private": true,
-  "devDependencies": {
+  "dependencies": {
     "express": "^4.16.4",
+    "socket.io": "^2.2.0"
+  },
+  "devDependencies": {
     "react": "^16.8.6",
     "slate": "0.47.2",
     "slate-react": "0.22.2",
-    "socket.io": "^2.2.0",
     "socket.io-client": "^2.2.0",
     "@babel/core": "7.4.3",
     "@babel/runtime": "^7.4.4",
@@ -70,10 +72,11 @@
     "workbox-webpack-plugin": "4.2.0"
   },
   "scripts": {
-    "start": "node scripts/start.js",
+    "dev": "node scripts/start.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js",
-    "startServer": "node server/index.js"
+    "start": "node server/index.js",
+    "heroku-postbuild": "echo Using build from git"
   },
   "eslintConfig": {
     "extends": [

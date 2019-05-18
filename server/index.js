@@ -1,11 +1,12 @@
 const express = require("express");
 const app = express();
-const http = require("http").Server(app);
-const io = require("socket.io")(http);
+const socketIO = require("socket.io");
 const path = require("path");
 const Clients = require("./clients");
 
+const PORT = process.env.PORT || 5000;
 const INITIAL_VALUE = require("./initial-value.json");
+let valueJSON = INITIAL_VALUE;
 
 app.use(express.static(path.resolve(__dirname + "/../build")));
 
@@ -13,7 +14,11 @@ app.get("/", function(req, res) {
   res.sendFile(path.resolve(__dirname + "/../build/index.html"));
 });
 
-let valueJSON = INITIAL_VALUE;
+const server = app.listen(PORT, function() {
+  console.log(`listening on ${PORT}`);
+});
+
+const io = socketIO(server);
 
 io.on("connection", function(socket) {
   console.log("A new client connected: ", socket.id);
@@ -50,8 +55,4 @@ io.on("connection", function(socket) {
     console.log("A client disconnected: ", socket.id);
     Clients.deleteClient(socket.id);
   });
-});
-
-http.listen(3001, function() {
-  console.log(`listening on localhost:${3001}`);
 });
