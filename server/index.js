@@ -1,116 +1,57 @@
-const app = require("express")();
+const express = require("express");
+const app = express();
 const http = require("http").Server(app);
 const io = require("socket.io")(http);
-const Value = require("../../slate/packages/slate").Value;
+const path = require("path");
+const Clients = require("./clients");
 
 const INITIAL_VALUE = require("./initial-value.json");
 
+app.use(express.static(path.resolve(__dirname + "/../build")));
+
 app.get("/", function(req, res) {
-  res.send("wha?");
+  res.sendFile(path.resolve(__dirname + "/../build/index.html"));
 });
 
 let valueJSON = INITIAL_VALUE;
 
-const clientsById = {};
-
-function getClient(id) {
-  return clientsById[id];
-}
-
-function setClient(client) {
-  const { key } = client;
-
-  clientsById[key] = {
-    ...clientsById[key],
-    ...client
-  };
-
-  return clientsById[key];
-}
-
 io.on("connection", function(socket) {
   console.log("A new client connected: ", socket.id);
 
-  const clientsCount = Object.keys(clientsById).length;
-  const annotation = setClient({
-    key: socket.id,
-    anchor: { offset: 0, path: [0, 0] },
-    focus: { offset: 0, path: [0, 0] },
-    data: {
-      name: `User${clientsCount ? clientsCount : ""}`,
-      // random color
-      color: `#${Math.floor(Math.random() * 16777215).toString(16)}`
-    }
-  });
+  Clients.setClient(socket.id);
 
-  // Send initial welcome to the new client
-  socket.emit("welcome", {
-    value: valueJSON,
-    annotation
-  });
+  const annotations = Clients.getAnnotations();
 
-  function emitClients() {
-    const annotations = Object.keys(clientsById).map(k => clientsById[k]);
-
-    socket.broadcast.emit("client:update", { annotations });
-  }
+  // Send current value and current client annotations to the new client
+  socket.emit("change", { value: valueJSON, annotations });
 
   // Tell others we have a new client
-  emitClients();
+  socket.broadcast.emit("change", { annotations });
 
-  socket.on("client:change", change => {
-    const { annotation } = change;
-    setClient({
-      ...annotation,
-      key: socket.id
-    });
-    emitClients();
-  });
-
-  socket.on("value:change", change => {
+  socket.on("change", change => {
     const { value, operations } = change;
-    console.log("value:change", JSON.stringify(operations));
-    if (value) valueJSON = value;
-    socket.broadcast.emit("value:change", {
-      change: { operations },
-      id: socket.id
+    const { document, selection } = value;
+
+    // Store the latest value in memory so new clients get correct current value
+    if (document) valueJSON = { document };
+
+    // Update client's selection annotation
+    const { anchor, focus } = selection;
+    Clients.setClient({ anchor, focus, key: socket.id });
+
+    socket.broadcast.emit("change", {
+      value,
+      operations: operations.filter(o => o.type !== "set_selection"),
+      annotations: Clients.getAnnotations()
     });
   });
 
   socket.on("disconnect", function() {
     console.log("A client disconnected: ", socket.id);
-    delete clientsById[socket.id];
+    Clients.deleteClient(socket.id);
   });
 });
 
 http.listen(3001, function() {
-  console.log("listening on localhost:3001");
+  console.log(`listening on localhost:${3001}`);
 });
-
-/*
-
-// sending to sender-client only
-socket.emit('message', "this is a test");
-
-// sending to all clients, include sender
-io.emit('message', "this is a test");
-
-// sending to all clients except sender
-socket.broadcast.emit('message', "this is a test");
-
-// sending to all clients in 'game' room(channel) except sender
-socket.broadcast.to('game').emit('message', 'nice game');
-
-// sending to all clients in 'game' room(channel), include sender
-io.in('game').emit('message', 'cool game');
-
-// sending to sender client, only if they are in 'game' room(channel)
-socket.to('game').emit('message', 'enjoy the game');
-
-// sending to all clients in namespace 'myNamespace', include sender
-io.of('myNamespace').emit('message', 'gg');
-
-// sending to individual socketid
-socket.broadcast.to(socketid).emit('message', 'for your eyes only');
-
-*/

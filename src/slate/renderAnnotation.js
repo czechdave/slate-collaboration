@@ -1,13 +1,13 @@
 import React from "react";
-import { ANNOTATION_TYPES } from "./schema";
+
+export const ANNOTATION_TYPES = {
+  cursor: "cursor"
+};
 
 const renderAnnotation = (props, editor, next) => {
-  console.log("renderAnnotation", props);
   const { children, annotation, attributes } = props;
-  const { type, key, data } = annotation;
+  const { type, data } = annotation;
   const { color, name } = data.toJS();
-
-  console.log(data, color, name);
 
   switch (type) {
     case ANNOTATION_TYPES.cursor:
