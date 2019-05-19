@@ -4,11 +4,12 @@
   "private": true,
   "dependencies": {
     "express": "^4.16.4",
-    "socket.io": "^2.2.0"
+    "socket.io": "^2.2.0",
+    "slate": "0.47.2",
+    "immutable": "^4.0.0-rc.12"
   },
   "devDependencies": {
     "react": "^16.8.6",
-    "slate": "0.47.2",
     "slate-react": "0.22.2",
     "socket.io-client": "^2.2.0",
     "@babel/core": "7.4.3",
@@ -41,7 +42,6 @@
     "fs-extra": "7.0.1",
     "html-webpack-plugin": "4.0.0-beta.5",
     "identity-obj-proxy": "3.0.0",
-    "immutable": "^4.0.0-rc.12",
     "is-wsl": "^1.1.0",
     "jest": "24.7.1",
     "jest-environment-jsdom-fourteen": "0.1.0",
@@ -73,6 +73,7 @@
   },
   "scripts": {
     "dev": "node scripts/start.js",
+    "dev-server": "nodemon server/index.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js",
     "start": "node server/index.js",
@@ -169,5 +170,8 @@
     "presets": [
       "react-app"
     ]
+  },
+  "nodemonConfig": {
+    "ignore": ["build/*", "public/*", "src/*", "scripts/*"]
   }
 }
